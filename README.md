@@ -7,8 +7,9 @@
 
 ## Run Single-client Version
 
- - Go to this directory: `cd demo`
+ - Go to this directory: `cd .`
  - start a Python simple server: `python -m http.server`
+ - OR go to https://kccarlos.github.io/web-chess-game/index.html
 
 ## Multi-client version
 
