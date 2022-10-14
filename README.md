@@ -2,7 +2,7 @@
 
 ## Simple Single-client Version
 
- - Go to https://kccarlos.github.io/web-chess-game/index.html
+ - Go to https://kccarlos.github.io/web-chess-game/
 
 ## Multi-client Version
 
