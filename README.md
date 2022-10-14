@@ -1,17 +1,17 @@
 # Web Chess Game - Five in a row
 
-## Dependencies
+## Simple Single-client Version
+
+ - Go to https://kccarlos.github.io/web-chess-game/index.html
+
+## Multi-client Version
+
+### Dependencies
 
  - Express 4.18.1
  - Socket.io 2.5.0
 
-## Run Single-client Version
-
- - Go to this directory: `cd .`
- - start a Python simple server: `python -m http.server`
- - OR go to https://kccarlos.github.io/web-chess-game/index.html
-
-## Multi-client version
+### Run it locally
 
  0. Go to this directory `cd src`
  1. Install dependencies: `npm install`
