@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Five in a Row</title>
+</head>
+<body>
+  <h1>Five in a Row</h1>
+  <h2>Click to start the Game</h2>
+  <div><button id="starter" type="button" onclick="socket.disconnect();processSocket();" style="display: none;">Restart the Game</button></div>
+  <canvas id="myCanvas" width="600" height="600" style="border:3px solid #000000;">
+</canvas>
+<script src="socket.io.js"></script>
+<script>
+  /////////////////////
+  // 1. VARIABLES
+  scale = 30;
+  cheese_size = 10;
+  board_unit_size = 20;
+  gameover = true;
+  me_cheese = 1;
+  other_cheese = -1;
+  h2 = document.querySelector("h2");
+  processSocket();
+
+  /////////////////////
+  // 2. HELPER FUNCTIONS
+  function processUserChoice(e) {
+    // process user choice
+    const [x, y] = getMousePosition(c, e);
+    if ([0, 20].includes(x) || [0, 20].includes(y) || board_array[x][y]) {
+      alert('Illegal selection, please re-select')
+    } else {
+      board_array[x][y] = me_cheese;
+      drawCheese(x, y, 'white');
+      socket.emit('choose', x, y);
+      c.removeEventListener('click', processUserChoice);
+      if (checkwin(me_cheese)) {
+        h2.innerHTML = 'You win! Game end';
+        gameover = true;
+        socket.disconnect();
+        document.getElementById("starter").style.display = "block";
+      } else {
+        h2.innerHTML = 'Waiting for the other player\' choice.';
+      }
+    }
+  };
+
+  function game_init() {
+    // set up the canvas and start the game
+    gameover = false
+    var c = document.getElementById("myCanvas");
+    document.getElementById("starter").style.display = "none";
+    c.height = board_unit_size * scale;
+    c.width = board_unit_size * scale;
+    var ctx = c.getContext("2d");
+    ctx.clearRect(0, 0, ctx.width, ctx.height);
+    for (let i = 1; i < 20; i++) {
+      ctx.moveTo(i * scale, 0);
+      ctx.lineTo(i * scale, 20 * scale);
+      ctx.stroke();
+      ctx.moveTo(0, i * scale);
+      ctx.lineTo(20 * scale, i * scale);
+      ctx.stroke();
+    }
+    let board_array = Array(20).fill().map(() => Array(20).fill(0));
+    window.c = c;
+    window.ctx = ctx;
+    window.board_array = board_array;
+    return [c, ctx, board_array];
+  };
+
+  function drawCheese(x, y, color) {
+    // draw cheese on canvas
+    ctx.beginPath();
+    ctx.arc(x * scale, y * scale, cheese_size, 0, 2 * Math.PI);
+    ctx.stroke();
+    ctx.fillStyle = color;
+    ctx.fill();
+  };
+
+  function getMousePosition(canvas, event) {
+    // return the rounded position of a mouse click
+    let rect = canvas.getBoundingClientRect();
+    let x = event.clientX - rect.left;
+    let y = event.clientY - rect.top;
+    return [Math.round(x / scale), Math.round(y / scale)];
+  };
+
+  function checkwin(whosecheese) {
+    // check if a winner has emerged
+    for (var i = 1; i <= 19; i++) {
+      for (var j = 1; j <= 19; j++) {
+        if (isFiveCenter(i, j, whosecheese)) {
+          winner = whosecheese;
+          return true;
+        };
+      };
+    };
+    return false;
+  };
+
+  function isFiveCenter(i, j, whosecheese) {
+    // helper function for checkwin()
+    if (
+            ( // check left to right. The center piece should be from column 3 to column 17
+                    i >= 3 && i <= 17 && [board_array[i - 2][j], board_array[i - 1][j], board_array[i][j], board_array[i + 1][j], board_array[i + 2][j]].every(v => v === whosecheese)
+            ) || ( // check top to bottom. The center piece should be from row 3 to row 17
+                    j >= 3 && j <= 17 && [board_array[i][j - 2], board_array[i][j - 1], board_array[i][j], board_array[i][j + 1], board_array[i][j + 2]].every(v => v === whosecheese)
+            ) || ( // check diagonal. center piece should be 2 blocks away from 4 boundaries
+                    i >= 3 && i <= 17 && j >= 3 && j <= 17 && (
+                            [board_array[i - 2][j - 2], board_array[i - 1][j - 1], board_array[i][j], board_array[i + 1][j + 1], board_array[i + 2][j + 2]].every(v => v === whosecheese) || [board_array[i - 2][j + 2], board_array[i - 1][j + 1], board_array[i][j], board_array[i + 1][j - 1], board_array[i + 2][j - 2]].every(v => v === whosecheese)
+                    )
+            )
+    ) {
+      return true
+    }
+    return false
+  }
+
+  /////////////////////
+  // 3. CONNECTIONS
+  function processSocket() {
+    socket = io.connect('http://localhost:8000');
+    socket.on('waiting', function() {
+      // waiting for another user to join
+      try {
+        window.c.removeEventListener('click', processUserChoice);
+      } catch (e) {}
+      h2.innerHTML = 'Waiting for another player to join';
+    });
+    socket.on('first', function() {
+      // two users are here. Let first user make choice
+      h2.innerText = 'Game start now! Your turn. ';
+      [c, ctx, board_array] = game_init();
+      c.addEventListener("click", processUserChoice);
+    });
+    socket.on('latter', function() {
+      // two users are here. Let the latter-coming user wait
+      h2.innerText = 'Game start now! Wait for the other player\' choice.';
+      [c, ctx, board_array] = game_init();
+    });
+    socket.on('choose', function(i, j) {
+      // show the choice from the other user
+      drawCheese(i, j, 'black');
+      board_array[i][j] = other_cheese;
+      h2.innerText = 'Your turn.';
+      c.addEventListener("click", processUserChoice);
+    });
+    socket.on('youlose', function() {
+      // the other user has won, stop the game
+      h2.innerText = 'You lost! Click to start another round';
+      c.removeEventListener('click', processUserChoice);
+    });
+    socket.on('end', function() {
+      // game termination
+      if (checkwin(other_cheese)) {
+        h2.innerText = 'You lost! Click to start another round';
+      } else if (!gameover) {
+        // the other user disconnected
+        h2.innerText = 'This game was ended prematurely as one player left the game. Click to start another round. '
+        gameover = true
+      }
+      c.removeEventListener('click', processUserChoice);
+      document.getElementById("starter").style.display = "block";
+    });
+  };
+</script>
+</body>
+</html>

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Five in a Row</title>
+</head>
+<body>
+  <h1>Five in a Row</h1>
+  <h2>Click to start the Game</h2>
+  <div><button id="starter" type="button">(Re)start the Game</button></div>
+  <canvas id="myCanvas" width="600" height="600" style="border:3px solid #000000;">
+</canvas>
+<script>
+scale = 30;
+cheese_size = 10;
+board_unit_size = 20;
+is_white_turn = false;
+winner = 0;
+white_cheese = 1;
+black_cheese = -1;
+
+h2 = document.querySelector("h2");
+document.getElementById("starter").onclick = game_init;
+
+function processUserChoice(e) {
+    const [x, y] = getMousePosition(c, e);
+    // console.log([x, y]);
+    if ([0, 20].includes(x) || [0, 20].includes(y) || board_array[x][y]) {
+        alert('Illegal selection, please re-select')
+    } else if (is_white_turn) {
+        board_array[x][y] = white_cheese;
+        drawCheese(x, y, 'white');
+        if (checkwin(white_cheese)) {
+            is_white_turn = false;
+            h2.innerHTML = "Black's Turn";
+        } else {
+            h2.innerHTML = "Game Over, White Won. Click button to restart";
+            c.removeEventListener('click', processUserChoice);
+        }
+
+    } else {
+        board_array[x][y] = black_cheese;
+        drawCheese(x, y, 'black');
+        if (checkwin(black_cheese)) {
+            is_white_turn = true;
+            h2.innerHTML = "White's Turn";
+        } else {
+            h2.innerHTML = "Game Over, Black Won. Click button to restart";
+            c.removeEventListener('click', processUserChoice);
+        }
+    }
+}
+
+function game_init() {
+    // set up the canvas and start the game
+    var c = document.getElementById("myCanvas");
+    c.height = board_unit_size * scale;
+    c.width = board_unit_size * scale;
+    var ctx = c.getContext("2d");
+    ctx.clearRect(0, 0, ctx.width, ctx.height);
+    for (let i = 1; i < 20; i++) {
+        ctx.moveTo(i * scale, 0);
+        ctx.lineTo(i * scale, 20 * scale);
+        ctx.stroke();
+        ctx.moveTo(0, i * scale);
+        ctx.lineTo(20 * scale, i * scale);
+        ctx.stroke();
+    }
+    let board_array = Array(20).fill().map(() => Array(20).fill(0));
+    window.c = c;
+    window.ctx = ctx;
+    window.board_array = board_array;
+    if (is_white_turn) {
+        h2.innerHTML = "White's Turn";
+    } else {
+        h2.innerHTML = "Black's Turn";
+    }
+    c.addEventListener("click", processUserChoice);
+    return [c, ctx, board_array];
+};
+
+function drawCheese(x, y, color) {
+    ctx.beginPath();
+    ctx.arc(x * scale, y * scale, cheese_size, 0, 2 * Math.PI);
+    ctx.stroke();
+    ctx.fillStyle = color;
+    ctx.fill();
+};
+
+function getMousePosition(canvas, event) {
+    // return the rounded position of a mouse click
+    let rect = canvas.getBoundingClientRect();
+    let x = event.clientX - rect.left;
+    let y = event.clientY - rect.top;
+    return [Math.round(x / scale), Math.round(y / scale)];
+};
+
+function checkwin(whosecheese) {
+    for (var i = 1; i <= 19; i++) {
+        for (var j = 1; j <= 19; j++) {
+            if (isFiveCenter(i, j, whosecheese)) {
+                winner = whosecheese;
+                h2.innerHTML = 'Game end';
+                return false;
+            };
+        };
+    };
+    return true;
+};
+
+function isFiveCenter(i, j, whosecheese) {
+    if (
+        ( // check left to right. The center piece should be from column 3 to column 17
+            i >= 3 && i <= 17 && [board_array[i - 2][j], board_array[i - 1][j], board_array[i][j], board_array[i + 1][j], board_array[i + 2][j]].every(v => v === whosecheese)
+        ) || ( // check top to bottom. The center piece should be from row 3 to row 17
+            j >= 3 && j <= 17 && [board_array[i][j - 2], board_array[i][j - 1], board_array[i][j], board_array[i][j + 1], board_array[i][j + 2]].every(v => v === whosecheese)
+        ) || ( // check diagonal. center piece should be 2 blocks away from 4 boundaries
+            i >= 3 && i <= 17 && j >= 3 && j <= 17 && (
+                [board_array[i - 2][j - 2], board_array[i - 1][j - 1], board_array[i][j], board_array[i + 1][j + 1], board_array[i + 2][j + 2]].every(v => v === whosecheese) || [board_array[i - 2][j + 2], board_array[i - 1][j + 1], board_array[i][j], board_array[i + 1][j - 1], board_array[i + 2][j - 2]].every(v => v === whosecheese)
+            )
+        )
+    ) {
+        // alert([whosecheese, 'is winning']);
+        return true
+    }
+    return false
+}
+</script>
+</body>
+</html>
